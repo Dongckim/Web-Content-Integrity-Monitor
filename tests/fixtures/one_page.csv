@@ -1,0 +1,2 @@
+# Example: use absolute path for file:// URLs in tests
+# Sample Page|file:///abs/path/to/tests/fixtures/minimal_mw.html|2020-01-01
