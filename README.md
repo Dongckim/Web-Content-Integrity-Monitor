@@ -1,33 +1,33 @@
 # Web Content Integrity Monitor
 
-웹 페이지를 마크다운으로 아카이브하고, **일별 스냅샷 비교**로 콘텐츠 변경을 감지하는 도구입니다.  
-URL 목록(CSV)을 입력받아 HTML을 정제·변환한 뒤 날짜별로 압축 저장하고, N일 전과 오늘 아카이브를 비교해 변경된 페이지 목록을 출력합니다.
+A tool that archives web pages as Markdown and **detects content changes via daily snapshot comparison**.  
+It takes a URL list (CSV), fetches HTML, cleans and converts it, then stores date-stamped archives and compares today’s archive with N days ago to output a list of modified pages.
 
 ---
 
-## 주요 기능
+## Features
 
-| 구성요소 | 설명 |
-|----------|------|
-| **html2md** | CSV의 URL에서 HTML을 받아 본문만 추출한 뒤 마크다운(.md)으로 변환하고, 당일 타임스탬프로 tar.gz 아카이브 생성 |
-| **diffcheck** | 오늘 아카이브와 N일 전 아카이브를 풀어 본문만 정규화한 뒤 비교 → 변경된 페이지의 제목·URL 출력 |
+| Component | Description |
+|-----------|-------------|
+| **html2md** | Fetches HTML from URLs in the CSV, extracts main content, converts to Markdown (.md), and creates a tar.gz archive with a timestamp for the run |
+| **diffcheck** | Extracts today’s and N-days-ago archives, normalizes body content, compares them, and prints title and URL of changed pages |
 
 ---
 
-## 요구사항
+## Requirements
 
 - **Python 3.10+**
-- 의존성: `beautifulsoup4`, `requests`  
-  (테스트 실행 시 `pytest`)
+- Dependencies: `beautifulsoup4`, `requests`  
+  (`pytest` for running tests)
 
-**설치 (Conda):**
+**Install (Conda):**
 
 ```bash
 conda env create -f environment.yml
 conda activate html-converter
 ```
 
-**설치 (pip):**
+**Install (pip):**
 
 ```bash
 pip install -r requirements.txt
@@ -35,35 +35,35 @@ pip install -r requirements.txt
 
 ---
 
-## 사용법
+## Usage
 
-### 1. 입력 CSV 형식
+### 1. Input CSV format
 
-파이프(`|`)로 구분된 3열:
+Three columns separated by pipe (`|`):
 
 ```
-제목|URL|날짜(YYYY-MM-DD)
+Title|URL|Date (YYYY-MM-DD)
 ```
 
-예:
+Example:
 
 ```
 Python (programming language)|https://en.wikipedia.org/wiki/Python_(programming_language)|2025-02-09
 Web scraping|https://en.wikipedia.org/wiki/Web_scraping|2025-02-09
 ```
 
-- `날짜`가 오늘보다 미래인 행은 건너뜁니다.
+- Rows with a **date** later than today are skipped.
 
-### 2. 웹 페이지 수집 및 아카이브 (html2md)
+### 2. Fetch and archive (html2md)
 
 ```bash
 ./html2md <csv_file> <output_dir>
 ```
 
-- `output_dir`에 `YYYY-MM-DD_HH-MM-SS.tar.gz` 형태로 아카이브가 생성됩니다.
-- 내부는 변환된 `.md` 파일들 (파일명은 제목 기반으로 자동 생성).
+- Archives are written under `output_dir` as `YYYY-MM-DD_HH-MM-SS.tar.gz`.
+- Each archive contains the converted `.md` files (filenames derived from titles).
 
-**예시:**
+**Example:**
 
 ```bash
 ./html2md sample_input.csv ./output
@@ -71,16 +71,16 @@ Web scraping|https://en.wikipedia.org/wiki/Web_scraping|2025-02-09
 # Archive created: ./output/2025-02-09_14-30-00.tar.gz
 ```
 
-### 3. N일 간 변경 페이지 확인 (diffcheck)
+### 3. Compare changes over N days (diffcheck)
 
 ```bash
 ./diffcheck <N> <output_dir>
 ```
 
-- `output_dir`에서 **오늘**과 **N일 전** 날짜의 아카이브를 찾아 비교합니다.
-- 같은 파일명(같은 페이지)만 비교하며, 본문이 바뀐 페이지만 출력합니다.
+- Finds archives for **today** and **N days ago** in `output_dir` and compares them.
+- Only pages present in both (same filename) are compared; only those with changed body text are printed.
 
-**예시:**
+**Example:**
 
 ```bash
 ./diffcheck 7 ./output
@@ -93,17 +93,17 @@ Web scraping|https://en.wikipedia.org/wiki/Web_scraping|2025-02-09
 ## Quick Start
 
 ```bash
-# 의존성 설치
+# Install dependencies
 pip install -r requirements.txt
 
-# 샘플로 수집 (실제 위키 URL 사용 시 네트워크 필요)
+# Run with sample CSV (network required for real Wikipedia URLs)
 ./html2md sample_input.csv ./output
 
-# 7일 전 vs 오늘 비교 (해당 날짜 아카이브가 있어야 함)
+# Compare today vs 7 days ago (archives for those dates must exist)
 ./diffcheck 7 ./output
 ```
 
-**Makefile 사용:**
+**Using the Makefile:**
 
 ```bash
 make crawl      # html2md sample_input.csv output
@@ -112,11 +112,11 @@ make diff N=7   # diffcheck 7 output
 
 ---
 
-## Cron으로 정기 수집
+## Scheduled runs with Cron
 
-매일 같은 시간에 `html2md`를 실행하면 일별 스냅샷이 쌓이고, `diffcheck`로 “지난 N일 동안 바뀐 페이지”를 확인할 수 있습니다.
+Running `html2md` at the same time every day builds daily snapshots; use `diffcheck` to see which pages changed in the last N days.
 
-예시 (`cronjob.txt` 참고):
+Example (see `cronjob.txt`):
 
 ```cron
 30 03 * * * /usr/bin/python3 /path/to/html2md /path/to/input.csv /path/to/output_dir >> /path/to/downloads.log 2>&1
@@ -124,28 +124,28 @@ make diff N=7   # diffcheck 7 output
 
 ---
 
-## 프로젝트 구조
+## Project structure
 
 ```
 .
-├── html2md           # 크롤링 + HTML→MD 변환 + 아카이브
-├── diffcheck         # N일 전/오늘 아카이브 비교
-├── environment.yml   # Conda 환경
-├── requirements.txt  # pip 의존성
-├── sample_input.csv  # 샘플 URL 목록
-├── cronjob.txt       # Cron 예시
-├── Makefile          # crawl / diff 타깃
+├── html2md           # Crawling + HTML→MD conversion + archiving
+├── diffcheck         # Compare N-days-ago vs today archives
+├── environment.yml   # Conda environment
+├── requirements.txt  # pip dependencies
+├── sample_input.csv  # Sample URL list
+├── cronjob.txt       # Cron example
+├── Makefile          # crawl / diff targets
 ├── docs/
-│   └── DESIGN.md     # 설계·기술 노트
+│   └── DESIGN.md     # Design and technical notes
 └── tests/
-    ├── fixtures/           # minimal_mw.html for local tests
+    ├── fixtures/     # minimal_mw.html for local tests
     ├── test_diffcheck.py
     └── test_html2md.py
 ```
 
 ---
 
-## 테스트
+## Tests
 
 ```bash
 pytest tests/ -v
@@ -153,6 +153,6 @@ pytest tests/ -v
 
 ---
 
-## 라이선스 / 목적
+## License / Purpose
 
-교육·포트폴리오 목적입니다. 실제 웹사이트 수집 시 해당 사이트의 이용 약관과 robots.txt를 확인하세요.
+For education and portfolio use. When scraping real sites, respect their terms of use and robots.txt.

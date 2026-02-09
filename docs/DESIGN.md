@@ -1,31 +1,31 @@
-# 설계 및 기술 노트
+# Design and technical notes
 
-## 1. HTML 정제 전략
+## 1. HTML cleaning strategy
 
-- **대상**: MediaWiki 기반 페이지(`mw-parser-output` div)를 기준으로 본문만 추출합니다.
-- **제거 요소**:
-  - 태그: `table`, `img`, `figure`, `script`, `style`, `math`, `iframe`
-  - 클래스: `navbox`, `infobox`, `reference`, `reflist`, `toc`, `hatnote` 등 (네비게이션·참고·인쇄 제외용)
-  - 섹션 ID: `References`, `External_links`, `See_also`, `Notes` — 해당 헤더부터 끝까지 제거
-- **목적**: 비교할 때 “본문 텍스트의 변경”에만 반응하고, 사이드바·참고문헌·광고 등 변경은 무시합니다.
+- **Target**: Main content is extracted from MediaWiki-style pages using the `mw-parser-output` div.
+- **Removed elements**:
+  - Tags: `table`, `img`, `figure`, `script`, `style`, `math`, `iframe`
+  - Classes: `navbox`, `infobox`, `reference`, `reflist`, `toc`, `hatnote`, etc. (navigation, references, print-only)
+  - Section IDs: `References`, `External_links`, `See_also`, `Notes` — the section from that header to the end is removed
+- **Goal**: Comparisons react only to changes in main body text; sidebar, references, and ads are ignored.
 
-## 2. 비교 방식 (diffcheck)
+## 2. Comparison logic (diffcheck)
 
-- **정규화**: 각 `.md` 파일에서 `<!-- URL: ... -->` 메타데이터와 빈 줄/앞뒤 공백을 제거한 뒤 한 줄로 이어 붙여 문자열로 비교합니다.
-- **범위**: 같은 파일명(같은 페이지)만 N일 전·오늘 쌍으로 비교합니다. 새로 생기거나 사라진 페이지는 목록에 포함하지 않습니다.
-- **출력**: 본문이 달라진 페이지만 “제목 (URL)” 형태로 출력해, 어떤 URL이 바뀌었는지 바로 확인할 수 있게 했습니다.
+- **Normalization**: For each `.md` file, the `<!-- URL: ... -->` metadata and blank lines/leading-trailing whitespace are stripped, then lines are joined into a single string for comparison.
+- **Scope**: Only pages present in both archives (same filename) are compared. New or removed pages are not listed.
+- **Output**: Only pages whose body content changed are printed as “Title (URL)” so you can see which URLs changed.
 
-## 3. 아카이브 전략
+## 3. Archive strategy
 
-- **형식**: 당일 실행 시점 타임스탬프(`YYYY-MM-DD_HH-MM-SS.tar.gz`)로 저장합니다.
-- **날짜 매칭**: diffcheck는 **날짜 문자열**(`YYYY-MM-DD`)로 아카이브를 찾습니다. 해당 날짜가 접두어인 아카이브가 여러 개면 가장 최신(이름 역순) 것을 사용합니다.
-- **효과**: 일별 스냅샷 하나만 남기거나, 같은 날 여러 번 돌려도 “그 날의 최신 run”을 자동으로 쓰게 할 수 있습니다.
+- **Format**: Archives are named with the run timestamp: `YYYY-MM-DD_HH-MM-SS.tar.gz`.
+- **Date matching**: diffcheck looks up archives by **date prefix** (`YYYY-MM-DD`). If multiple archives share that date prefix, the latest one (by name sort) is used.
+- **Effect**: You can keep one snapshot per day or run multiple times per day and automatically use the latest run for that date.
 
-## 4. 파일명·입력 형식
+## 4. Filenames and input format
 
-- **파일명**: 제목을 소문자·영숫자만 남기고 나머지는 `_`로 치환해 `제목.md` 형태로 저장합니다. URL/제목이 달라도 동일한 파일명이 나오면 같은 페이지로 간주합니다.
-- **CSV**: `title|url|date` 파이프 구분. `date`가 미래인 행은 수집 대상에서 제외해, “이 날짜 이후에 수집” 같은 스케줄을 CSV로 표현할 수 있습니다.
+- **Filenames**: The title is lowercased, non-alphanumeric characters are replaced with `_`, and the result is used as `title.md`. Same resulting filename is treated as the same page even if URL/title differ.
+- **CSV**: Pipe-separated `title|url|date`. Rows with a future `date` are skipped, so you can use the CSV to schedule “collect after this date”.
 
-## 5. 로컬 파일 지원
+## 5. Local file support
 
-- `html2md`는 `file://` URL도 처리합니다. 로컬 HTML 파일로 변환·테스트할 때 유용합니다.
+- `html2md` accepts `file://` URLs so you can convert and test with local HTML files.
