@@ -1,0 +1,3 @@
+#path = /Users/dongchankim/home/johndoe/ise337/hw3/downloads.log
+
+30 03 * * * echo "=== $(/bin/date '+\%Y-\%m-\%d \%H:\%M:\%S') ===" >> /Users/dongchankim/home/johndoe/ise337/hw3/downloads.log && /usr/bin/python3 /Users/dongchankim/home/johndoe/ise337/hw3/html2md /Users/dongchankim/home/johndoe/ise337/hw3/input.csv /Users/dongchankim/home/johndoe/ise337/hw3/output_dir >> /Users/dongchankim/home/johndoe/ise337/hw3/downloads.log 2>&1

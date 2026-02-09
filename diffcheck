@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+import sys
+import os
+import datetime
+import tarfile
+import tempfile
+import glob
+
+def get_archive_by_date(output_dir, target_date_str):
+    pattern = os.path.join(output_dir, f"{target_date_str}_*.tar.gz")
+    matches = glob.glob(pattern)
+
+    if not matches:
+        return None
+
+    matches.sort(reverse=True)
+    return matches[0]
+
+def extract_metadata(file_path):
+    url = "Unknown URL"
+    title = "Unknown Title"
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            if not lines:
+                return title, url
+            first_line = lines[0].strip()
+            if first_line.startswith("<!-- URL:") and first_line.endswith("-->"):
+                url = first_line.replace("<!-- URL:", "").replace("-->", "").strip()
+            for line in lines:
+                if line.startswith("# "):
+                    title = line.replace("# ", "").strip()
+                    break
+    except Exception as e:
+        sys.stderr.write(f"Error from {file_path}: {e}\n")
+    return title, url
+
+def normalize_content(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        if lines and lines[0].strip().startswith("<!-- URL:"):
+            lines = lines[1:]
+        return "".join([line.strip() for line in lines if line.strip()])
+    except:
+        return ""
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: ./diffcheck N output_dir")
+        sys.exit(1)
+    try:
+        n_days = int(sys.argv[1])
+    except ValueError:
+        sys.stderr.write("Error: N must be an integer.\n")
+        sys.exit(1)
+
+    output_dir = sys.argv[2]
+
+    today = datetime.date.today()
+    past_date = today - datetime.timedelta(days=n_days)
+
+    today_str = today.strftime("%Y-%m-%d")
+    past_str = past_date.strftime("%Y-%m-%d")
+
+    today_archive = get_archive_by_date(output_dir, today_str)
+    past_archive = get_archive_by_date(output_dir, past_str)
+
+    if not past_archive:
+        sys.stderr.write(f"Error: no archive from {n_days} days ago was found.\n")
+        if not today_archive:
+            sys.stderr.write("Error: no archives were created today (you can run html2md to create one).\n")
+        sys.exit(1)
+    if not today_archive:
+        sys.stderr.write("Error: no archives were created today (you can run html2md to create one).\n")
+        sys.exit(1)
+
+    modified_pages = []
+
+    with tempfile.TemporaryDirectory() as temp_root:
+        dir_today = os.path.join(temp_root, "today")
+        dir_past = os.path.join(temp_root, "past")
+
+        os.makedirs(dir_today)
+        os.makedirs(dir_past)
+
+        try:
+            with tarfile.open(today_archive, "r:gz") as tar:
+                tar.extractall(dir_today)
+
+            with tarfile.open(past_archive, "r:gz") as tar:
+                tar.extractall(dir_past)
+        except Exception as e:
+            sys.stderr.write(f"Error extracting archives: {e}\n")
+            sys.exit(1)
+
+        files_today = set(os.listdir(dir_today))
+        files_past = set(os.listdir(dir_past))
+
+        common_files = files_today.intersection(files_past)
+
+        for filename in common_files:
+            path_today = os.path.join(dir_today, filename)
+            path_past = os.path.join(dir_past, filename)
+
+            content_today = normalize_content(path_today)
+            content_past = normalize_content(path_past)
+
+            if content_today != content_past:
+                title, url = extract_metadata(path_today)
+                modified_pages.append((title, url))
+
+    if not modified_pages:
+        print(f"No changes in any web page content in the last {n_days} days.")
+    else:
+        print(f"The following web pages have been modified in the last {n_days} days:")
+        for title, url in modified_pages:
+            print(f"- {title} ({url})")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+name: html-converter
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - beautifulsoup4 
+    - requests        
+    - pytest          
